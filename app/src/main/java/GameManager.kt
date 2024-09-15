@@ -1,21 +1,23 @@
 import android.util.Log
 import androidx.compose.ui.graphics.PathOperation
+import kotlin.reflect.typeOf
+import kotlin.time.times
 
 class GameManager {
-    val tiles = mutableMapOf<Pair<Int, Int>, Int?>(
-        (0 to 0) to 2,
-        (1 to 0) to 2,
-        (2 to 0) to 2,
-        (3 to 0) to 2,
+    var tiles = mutableMapOf<Pair<Int, Int>, Int?>(
+        (0 to 0) to 8,
+        (1 to 0) to null,
+        (2 to 0) to null,
+        (3 to 0) to null,
         (0 to 1) to null,
         (1 to 1) to null,
         (2 to 1) to null,
         (3 to 1) to null,
-        (0 to 2) to null,
+        (0 to 2) to 8,
         (1 to 2) to null,
         (2 to 2) to null,
         (3 to 2) to null,
-        (0 to 3) to null,
+        (0 to 3) to 16,
         (1 to 3) to null,
         (2 to 3) to null,
         (3 to 3) to null,
@@ -27,6 +29,9 @@ class GameManager {
 
     fun getTiles(): MutableList<Int?> {
         val gridElements: MutableList<Int?> = mutableListOf()
+        tiles = tiles.toSortedMap(
+            compareBy<Pair<Int, Int>>{it.first} then compareBy{it.second}
+        )
 
         for (i in 0..3){
             for (j in 0..3){
@@ -63,47 +68,54 @@ class GameManager {
     }
 
     fun onSwap(direction: Direction) {
-        connectTiles(direction)
-//        if (direction == Direction.RIGHT){
-//            for (i in 0 .. 3){
-//                val newRow = connectTiles(mutableListOf(), (i to 3), -1, 0, direction)
-//
-//                for (j in 0 .. 3){
-//                    tiles[i to j] = newRow[j]
-//                }
-//            }
-//        }
-//        if (direction == Direction.LEFT){
-//            for (i in 0 .. 3){
-//                val newRow = connectTiles(mutableListOf(), (i to 0), 1, 0, direction)
-//
-//                for (j in 3 downTo 0){
-//                    tiles[i to j] = newRow[j]
-//                }
-//            }
-//        }
-//        if (direction == Direction.TOP){
-//            for (i in 0 .. 3){
-//                val newRow = connectTiles(mutableListOf(), (0 to i), 0, 1, direction)
-//
-//                for (j in 0 ..  3){
-//                    tiles[j to i] = newRow[j]
-//                }
-//            }
-//        }
-//        if (direction == Direction.BOTTOM){
-//            for (i in 0 .. 3){
-//                val newRow = connectTiles(mutableListOf(), (3 to i), 0, -1, direction)
-//
-//                for (j in 0 ..  3){
-//                    tiles[j to i] = newRow[j]
-//                }
-//            }
-//        }
+        val sortedTiles = connectTiles(direction)
+        val tilesList = sortedTiles.toList().toMutableList()
+        var tilesToCheck = 3
+        var listIndex = 0
+
+        sortedTiles.forEach{ el ->
+            if (el.value == null) {
+                for (i in 1 .. tilesToCheck) {
+                    if (tilesList[i + listIndex + (3 - tilesToCheck)].second != null) {
+                        tilesList[tilesList.indexOf(el.key to el.value)] = tilesList[tilesList.indexOf(el.key to el.value)].first to
+                                tilesList[i + listIndex + (3 - tilesToCheck)].second
+                        tilesList[i + listIndex + (3 - tilesToCheck)] = tilesList[i + listIndex + (3 - tilesToCheck)].first to
+                                null
+                        Log.d("", tilesList.toString())
+                        sortedTiles[el.key] = tilesList[tilesList.indexOf(el.key to el.value)].second
+                        sortedTiles[tilesList[i + listIndex + (3 - tilesToCheck)].first] = null
+                        break
+                    }
+                }
+            }
+            else {
+                for (i in 1 .. tilesToCheck) {
+                    if (tilesList[i + listIndex + (3 - tilesToCheck)].second == tilesList[tilesList.indexOf(el.key to el.value)].second) {
+
+                        break
+                    }
+                    if (
+                        tilesList[tilesList.indexOf(el.key to el.value)].second != tilesList[i + listIndex + (3 - tilesToCheck)].second
+                        && tilesList[i + listIndex + (3 - tilesToCheck)].second != null
+                    ) {
+
+                        break
+                    }
+                }
+            }
+            if (tilesToCheck == 0) {
+                tilesToCheck = 3
+                listIndex += 4
+            }
+            else tilesToCheck--
+
+        }
+
+        tiles = sortedTiles
         createTile()
     }
 
-    private fun connectTiles(direction: Direction){
+    private fun connectTiles(direction: Direction): MutableMap<Pair<Int, Int>, Int?>{
         var newMap = mutableMapOf<Pair<Int, Int>, Int?>()
         if (direction == Direction.LEFT){
             newMap = tiles.toSortedMap(
@@ -126,97 +138,7 @@ class GameManager {
             )
         }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-    //        if (row.size == 4){
-//            if (offsetY < 0 || offsetX < 0){
-//                // idk why, it just works lol
-//                row.reverse()
-//                // swapping row to the right
-//                for (s in 0 .. 3){
-//                    for (i in 3 downTo 0) {
-//                        if (row[i] == null){
-//                            for (j in i downTo 1){
-//                                row[j] = row[j-1]
-//                            }
-//                            row[0] = null
-//                        }
-//                    }
-//                }
-//
-//                // iterating from right to left tile
-//                for (i in 3 downTo 0){
-//                    // checking if two tiles are equal
-//                    for (j in i - 1 downTo 0){
-//                        // prevents jumping
-//                        if (row[i] != row[j]){
-//                            if (row[i + 1] == null){
-//                                row[i + 1] = row[i]
-//                                row[i] = null
-//                            }
-//                            break
-//                        }
-//                        if (row[i] == row[j]){
-//                            row[i] = row[i]?.times(2)
-//                            row[j] = null
-//                            if (row[i + 1] == null){
-//                                row[i + 1] = row[i]
-//                                row[i] = null
-//                            }
-//
-//                            // break prevents fast summing (very important, don't ask questions)
-//                            break
-//                        }
-//
-//                    }
-//                }
-//            }
-//
-//            if(offsetY > 0 || offsetX > 0){
-//                // swapping row to the left
-//                for (s in 0 .. 3){
-//                    for (i in 0 .. 3) {
-//                        if (row[i] == null){
-//                            for (j in i .. 2){
-//                                row[j] = row[j+1]
-//                            }
-//                            row[3] = null
-//                        }
-//                    }
-//                }
-//                // iterating from left to right tile
-//                for (i in 0 .. 3){
-//                    // checking if two tiles are equal
-//                    for (j in i + 1 .. 3){
-//                        // prevents jumping
-//                        if (row[i] != row[j]){
-//                            break
-//                        }
-//                        if (row[i] == row[j]){
-//                            row[i] = row[i]?.times(2)
-//                            row[j] = null
-//                            // break prevents fast summing (very important, don't ask questions)
-//                            break
-//                        }
-//                    }
-//                }
-//            }
-//            return row
-//        }
-//        row.add(tiles[tile])
-//        return connectTiles(row, (tile.first + offsetY to tile.second + offsetX), offsetX, offsetY, direction)
+        return newMap
 }
 
     fun gameLost() {
