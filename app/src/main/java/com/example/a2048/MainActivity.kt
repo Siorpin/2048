@@ -1,8 +1,6 @@
 package com.example.a2048
 
-import GameManager
 import android.os.Bundle
-import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge

@@ -1,11 +1,8 @@
-import android.util.Log
-import androidx.compose.ui.graphics.PathOperation
-import kotlin.reflect.typeOf
-import kotlin.time.times
+package com.example.a2048
 
 class GameManager {
-    var tiles = mutableMapOf<Pair<Int, Int>, Int?>(
-        (0 to 0) to 8,
+    private var tiles = mutableMapOf<Pair<Int, Int>, Int?>(
+        (0 to 0) to null,
         (1 to 0) to null,
         (2 to 0) to null,
         (3 to 0) to null,
@@ -13,11 +10,11 @@ class GameManager {
         (1 to 1) to null,
         (2 to 1) to null,
         (3 to 1) to null,
-        (0 to 2) to 8,
+        (0 to 2) to null,
         (1 to 2) to null,
         (2 to 2) to null,
         (3 to 2) to null,
-        (0 to 3) to 16,
+        (0 to 3) to null,
         (1 to 3) to null,
         (2 to 3) to null,
         (3 to 3) to null,
@@ -47,7 +44,7 @@ class GameManager {
         return gridElements
     }
 //    private
-     fun createTile() {
+     private fun createTile() {
         // adds 20% changes for creating 4-value tile
         val value: Int = when((1..5).random()){
             5 -> 4
@@ -58,7 +55,7 @@ class GameManager {
 
         while(tiles[mapKey] != null){
             if (!tiles.containsValue(null)){
-                gameLost()
+                if (isGameOver()) gameLost()
                 return
             }
             mapKey = ((0..3).random() to (0..3).random())
@@ -68,37 +65,50 @@ class GameManager {
     }
 
     fun onSwap(direction: Direction) {
-        val sortedTiles = connectTiles(direction)
-        val tilesList = sortedTiles.toList().toMutableList()
+        val tilesList = sortMapByDirection(direction)
+        val previousTilesState = tiles
         var tilesToCheck = 3
         var listIndex = 0
 
-        sortedTiles.forEach{ el ->
-            if (el.value == null) {
+        tilesList.forEach{ el ->
+            if (el.second == null) {
                 for (i in 1 .. tilesToCheck) {
+                    // case when checked tile is not null - shift him
                     if (tilesList[i + listIndex + (3 - tilesToCheck)].second != null) {
-                        tilesList[tilesList.indexOf(el.key to el.value)] = tilesList[tilesList.indexOf(el.key to el.value)].first to
+                        // checking if we can connect any tile to this one
+                        for (j in i+1 .. tilesToCheck) {
+                            // if yes, then do it
+                            if (tilesList[i + listIndex + (3 - tilesToCheck)].second == tilesList[j + listIndex + (3 - tilesToCheck)].second) {
+                                tilesList[i + listIndex + (3 - tilesToCheck)] = tilesList[i + listIndex + (3 - tilesToCheck)].first to
+                                        tilesList[i + listIndex + (3 - tilesToCheck)].second?.times(2)
+                                tilesList[j + listIndex + (3 - tilesToCheck)] = tilesList[j + listIndex + (3 - tilesToCheck)].first to
+                                        null
+                                break
+                            }
+                        }
+                        // shifting modified (or not) tile to empty space
+                        tilesList[tilesList.indexOf(el)] = el.first to
                                 tilesList[i + listIndex + (3 - tilesToCheck)].second
                         tilesList[i + listIndex + (3 - tilesToCheck)] = tilesList[i + listIndex + (3 - tilesToCheck)].first to
                                 null
-                        Log.d("", tilesList.toString())
-                        sortedTiles[el.key] = tilesList[tilesList.indexOf(el.key to el.value)].second
-                        sortedTiles[tilesList[i + listIndex + (3 - tilesToCheck)].first] = null
                         break
                     }
                 }
             }
             else {
                 for (i in 1 .. tilesToCheck) {
-                    if (tilesList[i + listIndex + (3 - tilesToCheck)].second == tilesList[tilesList.indexOf(el.key to el.value)].second) {
-
+                    // case when corresponding tile is different - break the loop and go to the next element
+                    if (
+                        tilesList[i + listIndex + (3 - tilesToCheck)].second != el.second &&
+                        tilesList[i + listIndex + (3 - tilesToCheck)].second != null
+                        ) {
                         break
                     }
-                    if (
-                        tilesList[tilesList.indexOf(el.key to el.value)].second != tilesList[i + listIndex + (3 - tilesToCheck)].second
-                        && tilesList[i + listIndex + (3 - tilesToCheck)].second != null
-                    ) {
-
+                    // case when two corresponding tiles are the same - connect them
+                    if (tilesList[i + listIndex + (3 - tilesToCheck)].second == el.second) {
+                        tilesList[tilesList.indexOf(el)] = el.first to el.second?.times(2)
+                        tilesList[i + listIndex + (3 - tilesToCheck)] = tilesList[i + listIndex + (3 - tilesToCheck)].first to
+                                null
                         break
                     }
                 }
@@ -111,11 +121,11 @@ class GameManager {
 
         }
 
-        tiles = sortedTiles
-        createTile()
+        tiles = tilesList.toMap().toMutableMap()
+        if (previousTilesState != tiles) createTile()
     }
 
-    private fun connectTiles(direction: Direction): MutableMap<Pair<Int, Int>, Int?>{
+    private fun sortMapByDirection(direction: Direction):  MutableList<Pair<Pair<Int, Int>, Int?>>{
         var newMap = mutableMapOf<Pair<Int, Int>, Int?>()
         if (direction == Direction.LEFT){
             newMap = tiles.toSortedMap(
@@ -138,10 +148,25 @@ class GameManager {
             )
         }
 
-        return newMap
+        return newMap.toList().toMutableList()
 }
+    private fun isGameOver(): Boolean {
+        var tilesList = sortMapByDirection(Direction.TOP)
+        for (i in 0 .. 3) {
+            for (j in i * 4 .. 4 * i + 2) {
+                if (tilesList[j] == tilesList[j + 1]) return false
+            }
+        }
+        tilesList = sortMapByDirection(Direction.LEFT)
+        for (i in 0 .. 3) {
+            for (j in i * 4 .. 4 * i + 2) {
+                if (tilesList[j] == tilesList[j + 1]) return false
+            }
+        }
+        return true
+    }
 
-    fun gameLost() {
+    private fun gameLost() {
 
     }
 }
