@@ -6,6 +6,7 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.gestures.detectVerticalDragGestures
 import androidx.compose.foundation.layout.Arrangement
@@ -20,8 +21,13 @@ import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material3.Button
 import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
@@ -85,6 +91,12 @@ class MainActivity : ComponentActivity() {
 
 @Composable
 fun MainSurface(modifier: Modifier = Modifier) {
+    var tiles by remember {
+        mutableStateOf(gameManager.getTiles())
+    }
+    var previousTilesValue by remember {
+        mutableStateOf(gameManager.getTiles())
+    }
     var gameScore: Int by remember { // It will be modified by Game() function
         mutableIntStateOf(gameManager.score)
     }
@@ -98,22 +110,28 @@ fun MainSurface(modifier: Modifier = Modifier) {
     ){
         Score(gameScore)
         Game(
+            tiles,
             {
+                previousTilesValue = tiles
+                tiles = gameManager.getTiles()
                 gameScore = gameManager.score
             }
+        )
+        BackButton({
+            tiles = previousTilesValue
+            gameManager.updateTiles(tiles)
+        }
         )
     }
 }
 
 @Composable
 fun Game(
+    tiles: MutableList<Int?>,
     modifyScore: () -> Unit,
     modifier: Modifier = Modifier
 ){
     // List that contains current game state. Refreshing every swap
-    var tiles by remember {
-        mutableStateOf(gameManager.getTiles())
-    }
     Box(
         modifier = modifier
             .padding(20.dp)
@@ -134,7 +152,6 @@ fun Game(
                             gameManager.onSwap(Direction.RIGHT)
                         }
                         modifyScore()
-                        tiles = gameManager.getTiles()
                     }
                 )
             }
@@ -155,7 +172,6 @@ fun Game(
                             gameManager.onSwap(Direction.BOTTOM)
                         }
                         modifyScore()
-                        tiles = gameManager.getTiles()
                     }
                 )
             }
@@ -257,4 +273,28 @@ fun Score(
     modifier: Modifier = Modifier
 ){
     Text(text = "Score: $score")
+}
+
+@Composable
+fun BackButton (
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Box(
+        modifier = modifier
+            .background(
+                Color.White,
+                RoundedCornerShape(24.dp)
+            )
+            .clickable {
+
+            }
+    ) {
+        IconButton(
+            onClick = onClick,
+            modifier = modifier
+        ) {
+            Icon(Icons.Default.ArrowBack, "Cancel move")
+        }
+    }
 }

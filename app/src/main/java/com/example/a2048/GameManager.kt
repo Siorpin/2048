@@ -25,6 +25,14 @@ class GameManager {
         createTile()
     }
 
+    fun updateTiles(tilesList: MutableList<Int?>) {
+        for (i in 0 ..3) {
+            for (j in 0 .. 3) {
+                tiles[i to j] = tilesList[i*4 + j]
+            }
+        }
+    }
+
     fun getTiles(): MutableList<Int?> {
         val gridElements: MutableList<Int?> = mutableListOf()
         tiles = tiles.toSortedMap(
