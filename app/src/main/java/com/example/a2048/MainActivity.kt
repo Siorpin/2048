@@ -27,6 +27,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -85,7 +86,7 @@ class MainActivity : ComponentActivity() {
 @Composable
 fun MainSurface(modifier: Modifier = Modifier) {
     var gameScore: Int by remember { // It will be modified by Game() function
-        mutableStateOf(0)
+        mutableIntStateOf(gameManager.score)
     }
 
     Column (
@@ -96,12 +97,19 @@ fun MainSurface(modifier: Modifier = Modifier) {
             .padding(bottom = 16.dp)
     ){
         Score(gameScore)
-        Game()
+        Game(
+            {
+                gameScore = gameManager.score
+            }
+        )
     }
 }
 
 @Composable
-fun Game(modifier: Modifier = Modifier){
+fun Game(
+    modifyScore: () -> Unit,
+    modifier: Modifier = Modifier
+){
     // List that contains current game state. Refreshing every swap
     var tiles by remember {
         mutableStateOf(gameManager.getTiles())
@@ -125,6 +133,7 @@ fun Game(modifier: Modifier = Modifier){
                         if (drag > 0) {
                             gameManager.onSwap(Direction.RIGHT)
                         }
+                        modifyScore()
                         tiles = gameManager.getTiles()
                     }
                 )
@@ -145,6 +154,7 @@ fun Game(modifier: Modifier = Modifier){
                         if (dx > 0) {
                             gameManager.onSwap(Direction.BOTTOM)
                         }
+                        modifyScore()
                         tiles = gameManager.getTiles()
                     }
                 )
@@ -190,10 +200,11 @@ fun Game(modifier: Modifier = Modifier){
             modifier = modifier
                 .fillMaxWidth()
                 .aspectRatio(1f)
-
         ) {
             items(tiles){element ->
-                GameCell(element)
+                GameCell(
+                    element
+                )
             }
         }
     }

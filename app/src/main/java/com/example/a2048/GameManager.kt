@@ -19,6 +19,7 @@ class GameManager {
         (2 to 3) to null,
         (3 to 3) to null,
     )
+    var score = 0
 
     fun startGame() {
         createTile()
@@ -83,6 +84,8 @@ class GameManager {
                                         tilesList[i + listIndex + (3 - tilesToCheck)].second?.times(2)
                                 tilesList[j + listIndex + (3 - tilesToCheck)] = tilesList[j + listIndex + (3 - tilesToCheck)].first to
                                         null
+                                // add score
+                                addScore(tilesList[i + listIndex + (3 - tilesToCheck)].second!!)
                                 break
                             }
                         }
@@ -109,6 +112,8 @@ class GameManager {
                         tilesList[tilesList.indexOf(el)] = el.first to el.second?.times(2)
                         tilesList[i + listIndex + (3 - tilesToCheck)] = tilesList[i + listIndex + (3 - tilesToCheck)].first to
                                 null
+                        // add score
+                        addScore(el.second!!)
                         break
                     }
                 }
@@ -168,5 +173,9 @@ class GameManager {
 
     private fun gameLost() {
 
+    }
+
+    private fun addScore(scoreToAdd: Int) {
+        score += scoreToAdd
     }
 }
