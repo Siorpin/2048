@@ -96,6 +96,9 @@ class GameManager {
                                 addScore(tilesList[i + listIndex + (3 - tilesToCheck)].second!!)
                                 break
                             }
+                            if (tilesList[j + listIndex + (3 - tilesToCheck)].second != null) {
+                                break
+                            }
                         }
                         // shifting modified (or not) tile to empty space
                         tilesList[tilesList.indexOf(el)] = el.first to
