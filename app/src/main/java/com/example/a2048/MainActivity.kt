@@ -1,6 +1,8 @@
 package com.example.a2048
 
+import android.graphics.drawable.Icon
 import android.os.Bundle
+import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -9,13 +11,16 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.gestures.detectVerticalDragGestures
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
@@ -23,12 +28,14 @@ import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.Button
 import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
@@ -39,11 +46,18 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Shader
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.a2048.ui.theme._2048Theme
@@ -117,10 +131,17 @@ fun MainSurface(modifier: Modifier = Modifier) {
                 gameScore = gameManager.score
             }
         )
-        BackButton({
-            tiles = previousTilesValue
-            gameManager.updateTiles(tiles)
-        }
+        ButtonsRow(
+            resetButtonFunction = {
+                gameScore = 0
+                gameManager.resetTiles()
+                gameManager.startGame()
+                tiles = gameManager.getTiles()
+            },
+            backButtonFunction = {
+                tiles = previousTilesValue
+                gameManager.updateTiles(tiles)
+            }
         )
     }
 }
@@ -217,10 +238,41 @@ fun Game(
                 .fillMaxWidth()
                 .aspectRatio(1f)
         ) {
+            var itemsCounter = 0
             items(tiles){element ->
-                GameCell(
-                    element
-                )
+                when(itemsCounter) {
+                    0 -> GameCell(
+                        element,
+                        0.dp,
+                        10.dp,
+                        RoundedCornerShape(topStart = 12.dp)
+                    )
+                    3 -> GameCell(
+                        element,
+                        0.dp,
+                        10.dp,
+                        RoundedCornerShape(topEnd = 12.dp)
+                    )
+                    12 -> GameCell(
+                        element,
+                        0.dp,
+                        10.dp,
+                        RoundedCornerShape(bottomStart = 12.dp)
+                    )
+                    15 -> GameCell(
+                        element,
+                        0.dp,
+                        10.dp,
+                        RoundedCornerShape(bottomEnd = 12.dp)
+                    )
+
+                    else -> GameCell(
+                        element,
+                        0.dp,
+                        10.dp
+                    )
+                }
+                itemsCounter++
             }
         }
     }
@@ -229,8 +281,16 @@ fun Game(
 @Composable
 fun GameCell(
     value: Int?,
+    offsetX: Dp,
+    offsetY: Dp,
+    shape: RoundedCornerShape = RoundedCornerShape(0.dp),
     modifier: Modifier = Modifier
 ){
+    var height by remember {
+        mutableStateOf(0.dp)
+    }
+    val density = LocalDensity.current
+
     val text: String = when(value){
         null -> ""
         else -> value.toString()
@@ -248,14 +308,25 @@ fun GameCell(
         512 -> Color(0xFFFF3030)
         1024 -> Color(0xFFDE68FF)
         2048 -> Color(0xFFCC17FF)
+        4096 -> Color(0xFF8800FF)
         else -> Color.Transparent
     }
     Box(
         modifier = modifier
             .aspectRatio(1f)
-            .fillMaxWidth()
-            .background(color = blockColor)
+            //.offset(height + 5.dp, 0.dp)
+            .onGloballyPositioned {
+                height = with(density) {
+                    it.size.height.toDp()
+                }
+            }
     ){
+        Surface(
+            color = blockColor,
+            modifier = modifier
+                .fillMaxSize(),
+            shape = shape
+        ) {}
         Text(
             text = text,
             color = Color(0xFFFDFDFD),
@@ -272,11 +343,32 @@ fun Score(
     score: Int,
     modifier: Modifier = Modifier
 ){
-    Text(text = "Score: $score")
+    Text(
+        text = stringResource(R.string.score, score),
+        fontSize = 24.sp,
+        fontWeight = FontWeight.W400
+    )
 }
 
 @Composable
-fun BackButton (
+fun ButtonsRow(
+    resetButtonFunction: () -> Unit,
+    backButtonFunction: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Row (
+        horizontalArrangement = Arrangement.SpaceEvenly,
+        modifier = modifier
+            .fillMaxWidth()
+    ) {
+        GameButton(Icons.Default.ArrowBack, backButtonFunction)
+        GameButton(Icons.Default.Refresh, resetButtonFunction)
+    }
+}
+
+@Composable
+fun GameButton (
+    icon: ImageVector,
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -284,17 +376,14 @@ fun BackButton (
         modifier = modifier
             .background(
                 Color.White,
-                RoundedCornerShape(24.dp)
+                RoundedCornerShape(20.dp)
             )
-            .clickable {
-
-            }
     ) {
         IconButton(
             onClick = onClick,
             modifier = modifier
         ) {
-            Icon(Icons.Default.ArrowBack, "Cancel move")
+            Icon(icon, "Cancel move")
         }
     }
 }

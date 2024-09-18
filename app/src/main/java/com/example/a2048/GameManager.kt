@@ -189,4 +189,10 @@ class GameManager {
     private fun addScore(scoreToAdd: Int) {
         score += scoreToAdd
     }
+
+    fun resetTiles() {
+        tiles.forEach{ el ->
+            tiles[el.key] = null
+        }
+    }
 }
