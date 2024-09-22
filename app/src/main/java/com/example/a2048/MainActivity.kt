@@ -1,17 +1,20 @@
 package com.example.a2048
 
-import android.graphics.drawable.Icon
 import android.os.Bundle
+import android.service.quicksettings.Tile
 import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.animateIntOffsetAsState
+import androidx.compose.animation.core.animateOffsetAsState
+import androidx.compose.animation.core.spring
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.gestures.detectVerticalDragGestures
-import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -29,7 +32,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Refresh
-import androidx.compose.material3.Button
 import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -39,6 +41,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -48,7 +51,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.Shader
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onGloballyPositioned
@@ -56,8 +58,9 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.DpOffset
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.a2048.ui.theme._2048Theme
@@ -239,39 +242,43 @@ fun Game(
                 .aspectRatio(1f)
         ) {
             var itemsCounter = 0
+            var x = 0
+            var y = 0
             items(tiles){element ->
                 when(itemsCounter) {
                     0 -> GameCell(
                         element,
-                        0.dp,
-                        10.dp,
+                        0 to 0,
                         RoundedCornerShape(topStart = 12.dp)
                     )
                     3 -> GameCell(
                         element,
-                        0.dp,
-                        10.dp,
+                        0 to 0,
                         RoundedCornerShape(topEnd = 12.dp)
+
                     )
                     12 -> GameCell(
                         element,
-                        0.dp,
-                        10.dp,
+                        0 to 0,
                         RoundedCornerShape(bottomStart = 12.dp)
                     )
                     15 -> GameCell(
                         element,
-                        0.dp,
-                        10.dp,
+                        0 to 0,
                         RoundedCornerShape(bottomEnd = 12.dp)
+
                     )
 
                     else -> GameCell(
                         element,
-                        0.dp,
-                        10.dp
+                        0 to 0,
                     )
                 }
+                if (x == 3) {
+                    y++
+                    x = 0
+                }
+                else x++
                 itemsCounter++
             }
         }
@@ -281,8 +288,7 @@ fun Game(
 @Composable
 fun GameCell(
     value: Int?,
-    offsetX: Dp,
-    offsetY: Dp,
+    animation: Pair<Int, Int>,
     shape: RoundedCornerShape = RoundedCornerShape(0.dp),
     modifier: Modifier = Modifier
 ){
@@ -290,6 +296,22 @@ fun GameCell(
         mutableStateOf(0.dp)
     }
     val density = LocalDensity.current
+    var xOffset = animateDpAsState(
+        if (animation.first != 0) (height + 5.dp) * animation.first
+        else 0.dp,
+        spring(
+            stiffness = Spring.StiffnessHigh,
+            dampingRatio = Spring.DampingRatioNoBouncy
+        )
+    )
+    var yOffset = animateDpAsState(
+        if (animation.second != 0) (height + 5.dp) * animation.second
+        else 0.dp,
+        spring(
+            stiffness = Spring.StiffnessHigh,
+            dampingRatio = Spring.DampingRatioNoBouncy
+        )
+    )
 
     val text: String = when(value){
         null -> ""
@@ -314,7 +336,7 @@ fun GameCell(
     Box(
         modifier = modifier
             .aspectRatio(1f)
-            //.offset(height + 5.dp, 0.dp)
+            .offset(xOffset.value, yOffset.value)
             .onGloballyPositioned {
                 height = with(density) {
                     it.size.height.toDp()
@@ -361,13 +383,14 @@ fun ButtonsRow(
         modifier = modifier
             .fillMaxWidth()
     ) {
-        GameButton(Icons.Default.ArrowBack, backButtonFunction)
-        GameButton(Icons.Default.Refresh, resetButtonFunction)
+        GameButton("go back Button", Icons.Default.ArrowBack, backButtonFunction)
+        GameButton("restart the game button", Icons.Default.Refresh, resetButtonFunction)
     }
 }
 
 @Composable
 fun GameButton (
+    contentDescription: String,
     icon: ImageVector,
     onClick: () -> Unit,
     modifier: Modifier = Modifier
@@ -383,7 +406,7 @@ fun GameButton (
             onClick = onClick,
             modifier = modifier
         ) {
-            Icon(icon, "Cancel move")
+            Icon(icon, contentDescription)
         }
     }
 }

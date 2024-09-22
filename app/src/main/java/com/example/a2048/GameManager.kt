@@ -165,7 +165,12 @@ class GameManager {
         }
 
         return newMap.toList().toMutableList()
-}
+    }
+
+    fun getAnimationData() {
+
+    }
+
     private fun isGameOver(): Boolean {
         var tilesList = sortMapByDirection(Direction.TOP)
         for (i in 0 .. 3) {
