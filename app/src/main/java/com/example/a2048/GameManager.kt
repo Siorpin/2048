@@ -1,5 +1,8 @@
 package com.example.a2048
 
+import kotlinx.coroutines.delay
+import java.util.function.UnaryOperator
+
 class GameManager {
     private var tiles = mutableMapOf<Pair<Int, Int>, Int?>(
         (0 to 0) to null,
@@ -19,9 +22,15 @@ class GameManager {
         (2 to 3) to null,
         (3 to 3) to null,
     )
+
+    private var animation = mutableListOf<Pair<Int, Int>>()
+
     var score = 0
 
     fun startGame() {
+        for (i in 0..15) {
+            animation.add(0 to 0)
+        }
         createTile()
     }
 
@@ -52,6 +61,10 @@ class GameManager {
 
         return gridElements
     }
+
+    fun getAnimationValues(): MutableList<Pair<Int, Int>> {
+        return animation
+    }
 //    private
      private fun createTile() {
         // adds 20% changes for creating 4-value tile
@@ -73,11 +86,39 @@ class GameManager {
         tiles[mapKey] = value
     }
 
-    fun onSwap(direction: Direction) {
+    fun updateAnimationValue(
+        direction: Direction,
+        singleData: Pair<Pair<Int, Int>, Int>
+        ) {
+        var index = 0
+        tiles.forEach{el ->
+            if (el.key == singleData.first) {
+                animation[index] = when(direction) {
+                    Direction.TOP -> 0 to -singleData.second
+                    Direction.RIGHT -> singleData.second to 0
+                    Direction.BOTTOM -> 0 to singleData.second
+                    Direction.LEFT -> -singleData.second to 0
+                }
+            }
+            index++
+        }
+    }
+
+
+    suspend fun onSwap(direction: Direction) {
         val tilesList = sortMapByDirection(direction)
         val previousTilesState = tiles
         var tilesToCheck = 3
         var listIndex = 0
+
+        tiles = tiles.toSortedMap(
+            compareBy<Pair<Int, Int>>{it.first} then compareBy{it.second}
+        )
+
+        animation.removeAll(animation)
+        for (i in 0..15) {
+            animation.add(0 to 0)
+        }
 
         tilesList.forEach{ el ->
             if (el.second == null) {
@@ -92,6 +133,8 @@ class GameManager {
                                         tilesList[i + listIndex + (3 - tilesToCheck)].second?.times(2)
                                 tilesList[j + listIndex + (3 - tilesToCheck)] = tilesList[j + listIndex + (3 - tilesToCheck)].first to
                                         null
+
+                                updateAnimationValue(direction, tilesList[j + listIndex + (3 - tilesToCheck)].first to j)
                                 // add score
                                 addScore(tilesList[i + listIndex + (3 - tilesToCheck)].second!!)
                                 break
@@ -105,6 +148,8 @@ class GameManager {
                                 tilesList[i + listIndex + (3 - tilesToCheck)].second
                         tilesList[i + listIndex + (3 - tilesToCheck)] = tilesList[i + listIndex + (3 - tilesToCheck)].first to
                                 null
+
+                        updateAnimationValue(direction, tilesList[i + listIndex + (3 - tilesToCheck)].first to i)
                         break
                     }
                 }
@@ -123,6 +168,8 @@ class GameManager {
                         tilesList[tilesList.indexOf(el)] = el.first to el.second?.times(2)
                         tilesList[i + listIndex + (3 - tilesToCheck)] = tilesList[i + listIndex + (3 - tilesToCheck)].first to
                                 null
+
+                        updateAnimationValue(direction, tilesList[i + listIndex + (3 - tilesToCheck)].first to i)
                         // add score
                         addScore(el.second!!)
                         break
@@ -136,7 +183,8 @@ class GameManager {
             else tilesToCheck--
 
         }
-
+        delay(200)
+        animation.replaceAll { 0 to 0 }
         tiles = tilesList.toMap().toMutableMap()
         if (previousTilesState != tiles) createTile()
     }
@@ -165,10 +213,6 @@ class GameManager {
         }
 
         return newMap.toList().toMutableList()
-    }
-
-    fun getAnimationData() {
-
     }
 
     private fun isGameOver(): Boolean {

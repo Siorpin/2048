@@ -6,11 +6,13 @@ import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.animation.core.Easing
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateIntOffsetAsState
 import androidx.compose.animation.core.animateOffsetAsState
 import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
@@ -64,6 +66,8 @@ import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.a2048.ui.theme._2048Theme
+import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.launch
 
 val gameManager = GameManager()
 
@@ -114,6 +118,9 @@ fun MainSurface(modifier: Modifier = Modifier) {
     var previousTilesValue by remember {
         mutableStateOf(gameManager.getTiles())
     }
+    val animation by remember {
+        mutableStateOf(gameManager.getAnimationValues())
+    }
     var gameScore: Int by remember { // It will be modified by Game() function
         mutableIntStateOf(gameManager.score)
     }
@@ -128,8 +135,10 @@ fun MainSurface(modifier: Modifier = Modifier) {
         Score(gameScore)
         Game(
             tiles,
+            animation,
             {
                 previousTilesValue = tiles
+                animation.replaceAll{0 to 0}
                 tiles = gameManager.getTiles()
                 gameScore = gameManager.score
             }
@@ -152,6 +161,7 @@ fun MainSurface(modifier: Modifier = Modifier) {
 @Composable
 fun Game(
     tiles: MutableList<Int?>,
+    animation: MutableList<Pair<Int, Int>>,
     modifyScore: () -> Unit,
     modifier: Modifier = Modifier
 ){
@@ -169,11 +179,12 @@ fun Game(
                     onDragEnd = {
                         // left
                         if (drag < 0) {
-                            gameManager.onSwap(Direction.LEFT)
+                            GlobalScope.launch {gameManager.onSwap(Direction.LEFT) }
+
                         }
                         // right
                         if (drag > 0) {
-                            gameManager.onSwap(Direction.RIGHT)
+                            GlobalScope.launch {gameManager.onSwap(Direction.RIGHT)}
                         }
                         modifyScore()
                     }
@@ -189,11 +200,11 @@ fun Game(
                     onDragEnd = {
                         // top
                         if (dx < 0) {
-                            gameManager.onSwap(Direction.TOP)
+                            GlobalScope.launch {gameManager.onSwap(Direction.TOP)}
                         }
                         // down
                         if (dx > 0) {
-                            gameManager.onSwap(Direction.BOTTOM)
+                            GlobalScope.launch {gameManager.onSwap(Direction.BOTTOM)}
                         }
                         modifyScore()
                     }
@@ -242,43 +253,36 @@ fun Game(
                 .aspectRatio(1f)
         ) {
             var itemsCounter = 0
-            var x = 0
-            var y = 0
             items(tiles){element ->
                 when(itemsCounter) {
                     0 -> GameCell(
                         element,
-                        0 to 0,
+                        animation[itemsCounter],
                         RoundedCornerShape(topStart = 12.dp)
                     )
                     3 -> GameCell(
                         element,
-                        0 to 0,
+                        animation[itemsCounter],
                         RoundedCornerShape(topEnd = 12.dp)
 
                     )
                     12 -> GameCell(
                         element,
-                        0 to 0,
+                        animation[itemsCounter],
                         RoundedCornerShape(bottomStart = 12.dp)
                     )
                     15 -> GameCell(
                         element,
-                        0 to 0,
+                        animation[itemsCounter],
                         RoundedCornerShape(bottomEnd = 12.dp)
 
                     )
 
                     else -> GameCell(
                         element,
-                        0 to 0,
+                        animation[itemsCounter],
                     )
                 }
-                if (x == 3) {
-                    y++
-                    x = 0
-                }
-                else x++
                 itemsCounter++
             }
         }
@@ -299,17 +303,15 @@ fun GameCell(
     var xOffset = animateDpAsState(
         if (animation.first != 0) (height + 5.dp) * animation.first
         else 0.dp,
-        spring(
-            stiffness = Spring.StiffnessHigh,
-            dampingRatio = Spring.DampingRatioNoBouncy
-        )
+        tween(
+            durationMillis = 20
+            )
     )
     var yOffset = animateDpAsState(
         if (animation.second != 0) (height + 5.dp) * animation.second
         else 0.dp,
-        spring(
-            stiffness = Spring.StiffnessHigh,
-            dampingRatio = Spring.DampingRatioNoBouncy
+        tween(
+            durationMillis = 200
         )
     )
 
